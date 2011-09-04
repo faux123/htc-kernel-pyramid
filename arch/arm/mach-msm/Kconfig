@@ -1346,6 +1346,30 @@ config SYNC_L2_CACHE_FREQ
 	bool "Synchronous L2 Cache Operations (Max 1.566 GHz)"
 	default n
 
+config GPU_OVERCLOCK
+	bool "GPU 2D, 3D Overclocking Enable"
+	default n
+
+config	GPU_2D_MAX_FREQ
+	int "GPU 2D Max Frequency"
+	depends on GPU_OVERCLOCK
+	default 228571000
+
+config	GPU_2D_MIN_FREQ
+	int "GPU 2D Min Frequency"
+	depends on GPU_OVERCLOCK
+	default 228571000
+
+config	GPU_3D_MAX_FREQ
+	int "GPU 3D Max Frequency"
+	depends on GPU_OVERCLOCK
+	default 266667000
+
+config	GPU_3D_MIN_FREQ
+	int "GPU 3D Min Frequency"
+	depends on GPU_OVERCLOCK
+	default 266667000
+
 if CPU_FREQ_MSM
 
 config MSM_CPU_FREQ_SET_MIN_MAX

@@ -647,12 +647,21 @@ struct kgsl_platform_data kgsl_pdata = {
 	.high_axi_3d = 200000,
 	.high_axi_2d = 160000,
 #endif
+#ifdef CONFIG_GPU_OVERCLOCK
+	.max_grp2d_freq = CONFIG_GPU_2D_MAX_FREQ,
+	.min_grp2d_freq = CONFIG_GPU_2D_MIN_FREQ,
+	.set_grp2d_async = NULL, /* HW workaround, run Z180 SYNC @ 192 MHZ */
+	.max_grp3d_freq = CONFIG_GPU_3D_MAX_FREQ,
+	.min_grp3d_freq = CONFIG_GPU_3D_MIN_FREQ,
+	.set_grp3d_async = NULL,
+#else
 	.max_grp2d_freq = 228571000,
 	.min_grp2d_freq = 228571000,
 	.set_grp2d_async = NULL, /* HW workaround, run Z180 SYNC @ 192 MHZ */
 	.max_grp3d_freq = 266667000,
 	.min_grp3d_freq = 266667000,
 	.set_grp3d_async = NULL,
+#endif
 	.imem_clk_name = "imem_axi_clk",
 	.imem_pclk_name = "imem_pclk",
 	.grp3d_clk_name = "gfx3d_clk",
