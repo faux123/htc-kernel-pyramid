@@ -1370,6 +1370,10 @@ config	GPU_3D_MIN_FREQ
 	depends on GPU_OVERCLOCK
 	default 266667000
 
+config CPU_VOLTAGE_TABLE
+	bool "Enable CPU Voltage Table via sysfs for adjustements"
+	default n
+
 if CPU_FREQ_MSM
 
 config MSM_CPU_FREQ_SET_MIN_MAX
