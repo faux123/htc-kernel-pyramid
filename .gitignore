@@ -34,4 +34,6 @@ drivers/video/backlight/lcd.ko
 drivers/video/backlight/lcd.mod.c
 lib/lib.a
 vmlinux
+drivers/net/wireless/bcm4329/bcm4329.ko
+drivers/net/wireless/bcm4329/bcm4329.mod.c
 
