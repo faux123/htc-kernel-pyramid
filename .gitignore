@@ -36,4 +36,6 @@ lib/lib.a
 vmlinux
 drivers/net/wireless/bcm4329/bcm4329.ko
 drivers/net/wireless/bcm4329/bcm4329.mod.c
+arch/arm/boot/compressed/ashldi3.S
+arch/arm/boot/compressed/piggy.xzkern
 
