@@ -44,8 +44,7 @@
 #include "kgsl_drm.h"
 #include "kgsl_cffdump.h"
 
-static bool screen_off = false;
-
+static bool kgsl_pm_resumed = 0;
 static void kgsl_put_phys_file(struct file *file);
 
 /* Allocate a new context id */
@@ -264,7 +263,7 @@ static int kgsl_suspend(struct platform_device *dev, pm_message_t state)
 	int i;
 	struct kgsl_device *device;
 	unsigned int nap_allowed_saved;
-       unsigned int idle_pass_saved;
+	unsigned int idle_pass_saved;
 
 	KGSL_PWR_INFO("suspend start\n");
 
@@ -290,6 +289,7 @@ static int kgsl_suspend(struct platform_device *dev, pm_message_t state)
 		del_timer(&device->idle_timer);
 		switch (device->state) {
 		case KGSL_STATE_INIT:
+			device->state = KGSL_STATE_SUSPEND;
 			break;
 		case KGSL_STATE_ACTIVE:
 			/* Wait for the device to become idle */
@@ -302,11 +302,13 @@ static int kgsl_suspend(struct platform_device *dev, pm_message_t state)
 			device->ftbl.device_stop(device);
 			KGSL_PWR_INFO("state -> SUSPEND, device %d\n",
 				device->id);
+			device->state = KGSL_STATE_SUSPEND;
 			break;
 		case KGSL_STATE_SLUMBER:
 			INIT_COMPLETION(device->hwaccess_gate);
 			KGSL_PWR_INFO("state -> SUSPEND, device %d\n",
 				device->id);
+			device->state = KGSL_STATE_SLUMBER;
 			break;
 		default:
 			KGSL_PWR_ERR("suspend fail, device %d\n",
@@ -314,7 +316,6 @@ static int kgsl_suspend(struct platform_device *dev, pm_message_t state)
 			mutex_unlock(&device->mutex);
 			return KGSL_FAILURE;
 		}
-		device->state = KGSL_STATE_SUSPEND;
 		device->requested_state = KGSL_STATE_NONE;
 		device->pwrctrl.nap_allowed = nap_allowed_saved;
 		device->pwrctrl.idle_pass = idle_pass_saved;
@@ -339,19 +340,13 @@ static int kgsl_resume(struct platform_device *dev)
 			continue;
 
 		mutex_lock(&device->mutex);
-		if ((device->state == KGSL_STATE_SUSPEND) &&
-			screen_off) {
-
-			device->state = KGSL_STATE_SLUMBER;
-			status = 0;
-			KGSL_PWR_INFO("state -> SLUMBER, device %d\n",
-					device->id);
-		} else if (device->state == KGSL_STATE_SUSPEND) {
+		if (device->state == KGSL_STATE_SUSPEND) {
 			device->requested_state = KGSL_STATE_ACTIVE;
 			kgsl_pwrctrl_pwrlevel_change(device, KGSL_PWRLEVEL_NOMINAL);
 			status = device->ftbl.device_start(device, 0);
 			if (status == KGSL_SUCCESS) {
 				device->state = KGSL_STATE_ACTIVE;
+				status = device->ftbl.device_resume_context(device);
 				KGSL_PWR_WARN("state -> ACTIVE, device %d\n",
 						device->id);
 			} else {
@@ -361,7 +356,18 @@ static int kgsl_resume(struct platform_device *dev)
 				mutex_unlock(&device->mutex);
 				return status;
 			}
-			status = device->ftbl.device_resume_context(device);
+		} else if (device->state == KGSL_STATE_SLUMBER) {
+			if (kgsl_pm_resumed) {
+				/* ugh... HTC, you dirty dog! */
+				kgsl_pwrctrl_wake(device);
+				device->pwrctrl.restore_slumber = 0;
+				kgsl_pm_resumed = false;
+			} else {
+				/* Came from Early Suspend, keep on sleeping */
+				status = 0;
+				KGSL_PWR_INFO("state -> SLUMBER, device %d\n",
+						device->id);
+			}
 		}
 		complete_all(&device->hwaccess_gate);
 		device->requested_state = KGSL_STATE_NONE;
@@ -378,7 +384,6 @@ void kgsl_early_suspend_driver(struct early_suspend *h)
 
 	KGSL_PWR_INFO("early suspend start\n");
 	mutex_lock(&device->mutex);
-	screen_off = true;
 	device->requested_state = KGSL_STATE_SLUMBER;
 	kgsl_pwrctrl_sleep(device);
 	mutex_unlock(&device->mutex);
@@ -393,7 +398,6 @@ void kgsl_late_resume_driver(struct early_suspend *h)
 
 	KGSL_PWR_INFO("late resume start\n");
 	mutex_lock(&device->mutex);
-	screen_off = false;
 	kgsl_pwrctrl_wake(device);
 	device->pwrctrl.restore_slumber = 0;
 	mutex_unlock(&device->mutex);
@@ -1762,6 +1766,7 @@ static int kgsl_pm_suspend(struct device *dev)
 static int kgsl_pm_resume(struct device *dev)
 {
 	dev_dbg(dev, "pm: resuming...\n");
+	kgsl_pm_resumed = true;
 	kgsl_resume(NULL);
 	return 0;
 }
@@ -2166,3 +2171,4 @@ MODULE_DESCRIPTION("Graphics driver for QSD8x50, MSM7x27, and MSM7x30");
 MODULE_VERSION("1.1");
 MODULE_LICENSE("GPL v2");
 MODULE_ALIAS("platform:kgsl");
+
