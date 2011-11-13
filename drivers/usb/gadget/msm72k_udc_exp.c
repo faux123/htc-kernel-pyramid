@@ -764,9 +764,11 @@ int usb_ept_queue_xfer(struct msm_endpoint *ept, struct usb_request *_req)
 		 * start things going, to avoid hw issues
 		 */
 		last->next = req;
+		req->prev = last;
 	} else {
 		/* queue was empty -- kick the hardware */
 		ept->req = req;
+		req->prev = NULL;
 		usb_ept_start(ept);
 	}
 	ept->last = req;
@@ -2513,10 +2515,12 @@ static int msm72k_dequeue(struct usb_ep *_ep, struct usb_request *_req)
 		ep->req = req->next;
 		ep->head->next = req->item->next;
 	} else {
-		req->prev->next = req->next;
+		if (req->prev) {
+			req->prev->next = req->next;
+			req->prev->item->next = req->item->next;
+		}
 		if (req->next)
 			req->next->prev = req->prev;
-		req->prev->item->next = req->item->next;
 	}
 
 	if (!req->next)
