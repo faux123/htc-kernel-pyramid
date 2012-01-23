@@ -6,6 +6,9 @@ scripts/kconfig/
 *.cmd
 *.d
 *.order
+*.patch
+*.orig
+*.rej
 .version
 arch/arm/kernel/asm-offsets.s
 include/config/
@@ -38,4 +41,7 @@ drivers/net/wireless/bcm4329/bcm4329.ko
 drivers/net/wireless/bcm4329/bcm4329.mod.c
 arch/arm/boot/compressed/ashldi3.S
 arch/arm/boot/compressed/piggy.xzkern
+drivers/cpufreq/cpufreq_hotplug.c
+drivers/scsi/scsi_wait_scan.ko
+drivers/scsi/scsi_wait_scan.mod.c
 
